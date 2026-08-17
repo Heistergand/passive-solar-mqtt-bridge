@@ -1,8 +1,8 @@
-# AlphaESS to MQTT T10-HV
+# Passive Solar MQTT Bridge
 
-Passive AlphaESS SMILE-T10-HV telemetry reader for MQTT and Home Assistant.
+Passive telemetry reader for MQTT and Home Assistant.
 
-This project is for installations where a Linux host can be placed transparently on Layer 2 between an AlphaESS system and the LAN. The host acts as an Ethernet bridge, and this program passively observes the AlphaESS TCP traffic that already crosses that bridge.
+Originally developed for AlphaESS SMILE-T10-HV, this project is for installations where a Linux host can be placed transparently on Layer 2 between an AlphaESS system and the LAN. The host acts as an Ethernet bridge, and this program passively observes the AlphaESS TCP traffic that already crosses that bridge.
 
 The program is intentionally read-only from the AlphaESS network point of view:
 
