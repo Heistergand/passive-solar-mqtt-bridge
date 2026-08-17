@@ -1,0 +1,22 @@
+# Go
+bin/
+dist/
+.gocache/
+.gomodcache/
+.tmp/
+*.exe
+*.test
+coverage.out
+
+# Local config and secrets
+config.local.yaml
+*.secret
+*.pcap
+*.pcapng
+pcaps/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

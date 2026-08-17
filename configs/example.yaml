@@ -1,0 +1,28 @@
+input:
+  mode: interface
+  interface: auto
+
+simulation:
+  realtime: false
+
+capture:
+  interface: auto
+  source_ip: 192.0.2.10
+  cloud_ip: 198.51.100.10
+  cloud_port: 7777
+
+mqtt:
+  enabled: false
+  broker: tcp://127.0.0.1:1883
+  username: ""
+  password_file: ""
+  topic_base: alphaess
+
+homeassistant:
+  discovery_prefix: homeassistant
+  device_id: alphaess_t10_hv
+  device_name: AlphaESS SMILE-T10-HV
+  mapping_file: ""
+
+logging:
+  level: info

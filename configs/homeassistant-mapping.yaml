@@ -1,0 +1,173 @@
+# Home Assistant MQTT Discovery mapping for AlphaESS fields.
+#
+# This file is intentionally plain YAML so installations can adapt sensor
+# semantics without rebuilding the binary.
+#
+# Each sensor maps one AlphaESS JSON field to one Home Assistant sensor entity.
+# The raw AlphaESS payload is always published on alphaess/raw/state; this file
+# only controls which fields receive Home Assistant MQTT Discovery entries.
+#
+# Common Home Assistant classes:
+#   Power:
+#     device_class: power
+#     state_class: measurement
+#     unit: W
+#   Energy counters for the Energy Dashboard:
+#     device_class: energy
+#     state_class: total_increasing
+#     unit: kWh
+#   Battery state of charge:
+#     device_class: battery
+#     state_class: measurement
+#     unit: "%"
+#
+# Keep unknown or experimental fields out of the normal dashboard by using:
+#   diagnostic: true
+# Diagnostic sensors are published with entity_category: diagnostic and
+# enabled_by_default: false, so they do not clutter Home Assistant dropdowns.
+#
+# If include_defaults is true, the built-in mapping is loaded first and the
+# sensors below are appended. Keep it false when this file should be the full
+# mapping for a specific installation.
+include_defaults: false
+
+sensors:
+  - field: SOC
+    object_id: soc
+    name: State of Charge
+    device_class: battery
+    state_class: measurement
+    unit: "%"
+
+  - field: Pbat
+    object_id: battery_power
+    name: Battery Power
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: PpvTotal
+    object_id: pv_power_total
+    name: PV Power Total
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: Ppv1
+    object_id: pv_power_1
+    name: PV Power 1
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: Ppv2
+    object_id: pv_power_2
+    name: PV Power 2
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: Ppv3
+    object_id: pv_power_3
+    name: PV Power 3
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: Ppv4
+    object_id: pv_power_4
+    name: PV Power 4
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: EpvTotal
+    object_id: pv_energy_total
+    name: PV Energy Total
+    device_class: energy
+    state_class: total_increasing
+    unit: kWh
+
+  - field: PrealL1
+    object_id: inverter_power_l1
+    name: Inverter Power L1
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: PrealL2
+    object_id: inverter_power_l2
+    name: Inverter Power L2
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: PrealL3
+    object_id: inverter_power_l3
+    name: Inverter Power L3
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: PrealTotal
+    object_id: inverter_power_total
+    name: Inverter Power Total
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: PmeterL1
+    object_id: meter_power_l1
+    name: Meter Power L1
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: PmeterL2
+    object_id: meter_power_l2
+    name: Meter Power L2
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: PmeterL3
+    object_id: meter_power_l3
+    name: Meter Power L3
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: PmeterTotal
+    object_id: grid_power_total
+    name: Grid Power Total
+    device_class: power
+    state_class: measurement
+    unit: W
+
+  - field: Einput
+    object_id: grid_import_energy_total
+    name: Grid Import Energy Total
+    device_class: energy
+    state_class: total_increasing
+    unit: kWh
+
+  - field: Eoutput
+    object_id: grid_export_energy_total
+    name: Grid Export Energy Total
+    device_class: energy
+    state_class: total_increasing
+    unit: kWh
+
+  - field: Echarge
+    object_id: battery_charge_energy_total
+    name: Battery Charge Energy Total
+    device_class: energy
+    state_class: total_increasing
+    unit: kWh
+
+  - field: EDischarge
+    object_id: battery_discharge_energy_total
+    name: Battery Discharge Energy Total
+    device_class: energy
+    state_class: total_increasing
+    unit: kWh
