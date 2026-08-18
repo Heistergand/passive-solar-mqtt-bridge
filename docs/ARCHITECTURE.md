@@ -55,3 +55,21 @@ MQTT publishing is disabled by default. When enabled, the program publishes reta
 The AlphaESS parser validates the observed frame envelope before decoding JSON. The frame starts with `01 01`, uses a 7-byte header, stores the JSON payload length as a big-endian `uint32` in header bytes 3..6, and ends with a CRC16-Modbus checksum over header plus payload. The checksum bytes are stored big-endian in the stream.
 
 After frame validation, parsing stays intentionally dynamic: it preserves all raw fields, normalizes numeric values, and derives `PpvTotal` from present `PpvN` fields. Device-specific profiles should only be added if real captures prove that the dynamic parser is insufficient.
+
+## Installation Model
+
+The supported installed runtime is a systemd service named `passive-solar-mqtt.service`.
+
+The installer writes:
+
+```text
+/usr/local/bin/passive-solar-mqtt
+/etc/passive-solar-mqtt/config.yaml
+/etc/passive-solar-mqtt/homeassistant-mapping.yaml
+/etc/passive-solar-mqtt/mqtt-password
+/etc/systemd/system/passive-solar-mqtt.service
+```
+
+Existing non-empty MQTT password files are treated as authoritative. The installer does not normalize or rewrite them before attempting installation. After the service is installed and restarted, the installer validates the service state and checks for common password-file formatting mistakes such as leading blank lines, trailing whitespace, or multiple non-empty lines. If needed, it offers an interactive password re-entry and restarts the service.
+
+The unit grants `CAP_NET_RAW` through systemd capabilities and keeps the process otherwise non-root under the configured service user.

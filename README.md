@@ -200,6 +200,15 @@ If the service reports `no AlphaESS TCP traffic seen within 2m0s on active inter
 
 ## Implementation Status
 
+Current public status:
+
+- repository: public GitHub project at `Heistergand/passive-solar-mqtt-bridge`
+- current release: `0.1.0`
+- license: BSD-2-Clause
+- release artifacts: Linux `amd64` and `arm64` tarballs plus `checksums.txt`
+- tested target path: `/opt/passive-solar-mqtt` unpacked release bundle, installing to `/usr/local/bin/passive-solar-mqtt` and `/etc/passive-solar-mqtt`
+- current development branch includes an installer fix planned for `0.1.1`: existing MQTT password files are respected first, then checked after installation; malformed password files can be replaced interactively
+
 The implemented passive pipeline is:
 
 ```text
@@ -410,6 +419,8 @@ The installer:
 - creates or updates `/etc/passive-solar-mqtt/config.yaml`
 - creates or updates `/etc/passive-solar-mqtt/homeassistant-mapping.yaml`
 - asks for the MQTT password without echoing it only when no password file exists or `--init` is used
+- treats an existing non-empty MQTT password file as authoritative during installation
+- validates the service after installation and offers to re-enter the MQTT password if the service fails or if the password file contains suspicious whitespace or multiple non-empty lines
 - stores the MQTT password file with restricted permissions
 - creates or updates `/etc/systemd/system/passive-solar-mqtt.service`
 - enables and starts the service
