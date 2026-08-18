@@ -1,6 +1,6 @@
 [Unit]
-Description=AlphaESS passive MQTT bridge
-Documentation=https://github.com/Heistergand/AlphaESS-to-MQTT_T10-HV
+Description=Passive solar MQTT bridge
+Documentation=https://github.com/Heistergand/passive-solar-mqtt-bridge
 Wants=network-online.target
 After=network-online.target
 StartLimitIntervalSec=10min
@@ -10,7 +10,7 @@ StartLimitBurst=6
 Type=simple
 User=alphaess
 Group=alphaess
-ExecStart=/usr/local/bin/alphaess-passive --config /etc/alphaess-passive/config.yaml --mqtt
+ExecStart=/usr/local/bin/passive-solar-mqtt --config /etc/passive-solar-mqtt/config.yaml --mqtt
 Restart=on-failure
 RestartSec=15s
 

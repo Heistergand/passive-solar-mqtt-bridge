@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/homeassistant"
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/mqtt"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/homeassistant"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/mqtt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 )

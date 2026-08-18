@@ -7,11 +7,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/alphaess"
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/homeassistant"
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/mqtt"
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/reassembly"
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/state"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/alphaess"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/homeassistant"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/mqtt"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/reassembly"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/state"
 	"github.com/google/gopacket/layers"
 )
 

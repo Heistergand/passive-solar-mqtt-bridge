@@ -10,7 +10,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const EnvConfigPath = "ALPHAESS_PASSIVE_CONFIG"
+const EnvConfigPath = "PASSIVE_SOLAR_MQTT_CONFIG"
 
 type Config struct {
 	Input         InputConfig         `yaml:"input"`
@@ -282,24 +282,24 @@ func candidatePaths() []string {
 		paths = append(paths, envPath)
 	}
 	if xdgConfigHome := os.Getenv("XDG_CONFIG_HOME"); xdgConfigHome != "" {
-		paths = append(paths, filepath.Join(xdgConfigHome, "alphaess-passive", "config.yaml"))
+		paths = append(paths, filepath.Join(xdgConfigHome, "passive-solar-mqtt", "config.yaml"))
 	}
 	if home := os.Getenv("HOME"); home != "" {
-		paths = append(paths, filepath.Join(home, ".config", "alphaess-passive", "config.yaml"))
+		paths = append(paths, filepath.Join(home, ".config", "passive-solar-mqtt", "config.yaml"))
 	}
-	paths = append(paths, "/etc/alphaess-passive/config.yaml")
+	paths = append(paths, "/etc/passive-solar-mqtt/config.yaml")
 
 	return paths
 }
 
 func defaultWritePath() string {
 	if xdgConfigHome := os.Getenv("XDG_CONFIG_HOME"); xdgConfigHome != "" {
-		return filepath.Join(xdgConfigHome, "alphaess-passive", "config.yaml")
+		return filepath.Join(xdgConfigHome, "passive-solar-mqtt", "config.yaml")
 	}
 	if home := os.Getenv("HOME"); home != "" {
-		return filepath.Join(home, ".config", "alphaess-passive", "config.yaml")
+		return filepath.Join(home, ".config", "passive-solar-mqtt", "config.yaml")
 	}
-	return "/etc/alphaess-passive/config.yaml"
+	return "/etc/passive-solar-mqtt/config.yaml"
 }
 
 func fileExists(path string) (bool, error) {

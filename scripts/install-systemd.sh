@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="alphaess-passive"
+APP_NAME="passive-solar-mqtt"
 INSTALL_BIN="/usr/local/bin/${APP_NAME}"
 CONFIG_DIR="/etc/${APP_NAME}"
 CONFIG_FILE="${CONFIG_DIR}/config.yaml"
@@ -169,10 +169,10 @@ interface_exists() {
 
 find_binary() {
   local candidates=(
-    "${REPO_DIR}/bin/alphaess-passive-linux-amd64"
-    "${REPO_DIR}/alphaess-passive-linux-amd64"
-    "${REPO_DIR}/bin/alphaess-passive"
-    "${REPO_DIR}/alphaess-passive"
+    "${REPO_DIR}/bin/passive-solar-mqtt-linux-amd64"
+    "${REPO_DIR}/passive-solar-mqtt-linux-amd64"
+    "${REPO_DIR}/bin/passive-solar-mqtt"
+    "${REPO_DIR}/passive-solar-mqtt"
   )
   local candidate
   for candidate in "${candidates[@]}"; do
@@ -181,7 +181,7 @@ find_binary() {
       return
     fi
   done
-  die "could not find a built alphaess-passive binary. Build it first or place it next to this script."
+  die "could not find a built passive-solar-mqtt binary. Build it first or place it next to this script."
 }
 
 backup_if_exists() {
@@ -246,8 +246,8 @@ write_service() {
 
   cat >"${SERVICE_FILE}" <<EOF
 [Unit]
-Description=AlphaESS passive MQTT bridge
-Documentation=https://github.com/Heistergand/AlphaESS-to-MQTT_T10-HV
+Description=Passive solar MQTT bridge
+Documentation=https://github.com/Heistergand/passive-solar-mqtt-bridge
 Wants=network-online.target
 After=network-online.target
 StartLimitIntervalSec=10min
@@ -297,7 +297,7 @@ main() {
     default_user="$(id -un)"
   fi
 
-  echo "AlphaESS passive MQTT bridge systemd installer"
+  echo "Passive solar MQTT bridge systemd installer"
   echo
   echo "This installs the binary, config, Home Assistant mapping, MQTT password file, and systemd service."
   echo "It does not configure the Linux Layer-2 bridge."

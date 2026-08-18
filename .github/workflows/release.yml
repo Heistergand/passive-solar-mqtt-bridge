@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build release artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build and package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist
+
+          build_package() {
+            local goarch="$1"
+            local package_dir="dist/passive-solar-mqtt-linux-${goarch}/passive-solar-mqtt"
+            local binary="${package_dir}/bin/passive-solar-mqtt-linux-${goarch}"
+
+            mkdir -p "${package_dir}/bin"
+            mkdir -p "${package_dir}/configs"
+            mkdir -p "${package_dir}/scripts"
+            mkdir -p "${package_dir}/docs"
+
+            GOOS=linux GOARCH="${goarch}" CGO_ENABLED=0 \
+              go build -trimpath -buildvcs=false -ldflags="-s -w" \
+              -o "${binary}" ./cmd/passive-solar-mqtt
+
+            chmod 0755 "${binary}"
+            cp configs/example.yaml "${package_dir}/configs/"
+            cp configs/homeassistant-mapping.yaml "${package_dir}/configs/"
+            cp configs/passive-solar-mqtt.service.example "${package_dir}/configs/"
+            cp scripts/install-systemd.sh "${package_dir}/scripts/"
+            cp scripts/uninstall.sh "${package_dir}/scripts/"
+            chmod 0755 "${package_dir}/scripts/install-systemd.sh"
+            chmod 0755 "${package_dir}/scripts/uninstall.sh"
+            cp README.md "${package_dir}/"
+            cp docs/*.md "${package_dir}/docs/"
+
+            tar -C "dist/passive-solar-mqtt-linux-${goarch}" \
+              -czf "dist/passive-solar-mqtt-linux-${goarch}.tar.gz" \
+              passive-solar-mqtt
+          }
+
+          build_package amd64
+          build_package arm64
+
+          cd dist
+          sha256sum \
+            passive-solar-mqtt-linux-amd64.tar.gz \
+            passive-solar-mqtt-linux-arm64.tar.gz \
+            > checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/passive-solar-mqtt-linux-amd64.tar.gz
+            dist/passive-solar-mqtt-linux-arm64.tar.gz
+            dist/checksums.txt
+          generate_release_notes: true

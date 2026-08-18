@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/mqtt"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/mqtt"
 	"gopkg.in/yaml.v3"
 )
 

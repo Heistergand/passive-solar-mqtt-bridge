@@ -37,7 +37,7 @@ The Linux host is physically in the path, but it does not become an IP proxy for
 
 Operationally important distinction:
 
-- If `alphaess-passive` stops, AlphaESS traffic should continue through the Linux bridge.
+- If `passive-solar-mqtt` stops, AlphaESS traffic should continue through the Linux bridge.
 - If the Linux host, bridge, or cabling fails, the physical connection is interrupted.
 
 Use this project only if that network model is acceptable for your installation.
@@ -222,23 +222,23 @@ Implemented pieces:
 The program looks for a configuration file in these locations:
 
 ```text
-$ALPHAESS_PASSIVE_CONFIG
-$XDG_CONFIG_HOME/alphaess-passive/config.yaml
-$HOME/.config/alphaess-passive/config.yaml
-/etc/alphaess-passive/config.yaml
+$PASSIVE_SOLAR_MQTT_CONFIG
+$XDG_CONFIG_HOME/passive-solar-mqtt/config.yaml
+$HOME/.config/passive-solar-mqtt/config.yaml
+/etc/passive-solar-mqtt/config.yaml
 ```
 
 Or you can pass it explicitly:
 
 ```bash
-alphaess-passive --config configs/example.yaml
-alphaess-passive -c configs/example.yaml
+passive-solar-mqtt --config configs/example.yaml
+passive-solar-mqtt -c configs/example.yaml
 ```
 
 MQTT publishing is disabled by default for safe offline analysis. Enable it explicitly when the broker target is correct:
 
 ```bash
-alphaess-passive --config configs/example.yaml --mqtt
+passive-solar-mqtt --config configs/example.yaml --mqtt
 ```
 
 or in the config:
@@ -281,14 +281,14 @@ When an existing config was loaded, `ja` updates that file. When no config exist
 Read from a saved capture file:
 
 ```bash
-alphaess-passive --config configs/example.yaml --file pcaps/sample.pcapng
-alphaess-passive -c configs/example.yaml -f pcaps/sample.pcapng
+passive-solar-mqtt --config configs/example.yaml --file pcaps/sample.pcapng
+passive-solar-mqtt -c configs/example.yaml -f pcaps/sample.pcapng
 ```
 
 Replay a saved capture with its original packet timing:
 
 ```bash
-alphaess-passive --config configs/example.yaml --file pcaps/sample.pcapng --realtime
+passive-solar-mqtt --config configs/example.yaml --file pcaps/sample.pcapng --realtime
 ```
 
 Without `--realtime`, pcap files are read as fast as possible. `--realtime` is only valid for file input.
@@ -296,8 +296,8 @@ Without `--realtime`, pcap files are read as fast as possible. `--realtime` is o
 Enable verbose output:
 
 ```bash
-alphaess-passive --config configs/example.yaml --verbose
-alphaess-passive -c configs/example.yaml -v
+passive-solar-mqtt --config configs/example.yaml --verbose
+passive-solar-mqtt -c configs/example.yaml -v
 ```
 
 Verbose mode reports packet, stream, JSON, discovery, availability, and MQTT publish activity.
@@ -316,7 +316,7 @@ The program also builds Home Assistant MQTT Discovery payloads. By default it us
 
 ```yaml
 homeassistant:
-  mapping_file: /etc/alphaess-passive/homeassistant-mapping.yaml
+  mapping_file: /etc/passive-solar-mqtt/homeassistant-mapping.yaml
 ```
 
 Relative mapping paths are resolved relative to the config file. See `configs/homeassistant-mapping.yaml` for an inline-documented example. Keep unknown fields as diagnostic sensors or leave them out; the full raw JSON remains available on `alphaess/raw/state`.
@@ -349,9 +349,9 @@ If the MQTT connection breaks during a publish, the client closes the stale sock
 Read from a live interface or let the program detect it:
 
 ```bash
-alphaess-passive --config configs/example.yaml --interface auto
-alphaess-passive --config configs/example.yaml --interface enx0c3796bef0d8
-alphaess-passive -c configs/example.yaml -i enx0c3796bef0d8
+passive-solar-mqtt --config configs/example.yaml --interface auto
+passive-solar-mqtt --config configs/example.yaml --interface enx0c3796bef0d8
+passive-solar-mqtt -c configs/example.yaml -i enx0c3796bef0d8
 ```
 
 If neither `--file` nor `--interface` is provided, the input from the config file is used. `--file` and `--interface` are mutually exclusive. If a configured fixed interface no longer exists, for example after replacing a USB Ethernet adapter, the service attempts the same auto-detection before failing.
@@ -359,19 +359,19 @@ If neither `--file` nor `--interface` is provided, the input from the config fil
 Live capture is implemented for Linux using a passive `AF_PACKET` raw socket. It does not change bridge, routing, firewall, NAT, or proxy settings. The binary needs permission to open the packet socket, for example through `CAP_NET_RAW`:
 
 ```bash
-sudo setcap cap_net_raw=eip /usr/local/bin/alphaess-passive
+sudo setcap cap_net_raw=eip /usr/local/bin/passive-solar-mqtt
 ```
 
 For a first live test without publishing to MQTT:
 
 ```bash
-alphaess-passive --config /etc/alphaess-passive/config.yaml --interface auto --verbose --no-mqtt
+passive-solar-mqtt --config /etc/passive-solar-mqtt/config.yaml --interface auto --verbose --no-mqtt
 ```
 
 For MQTT publishing:
 
 ```bash
-alphaess-passive --config /etc/alphaess-passive/config.yaml --interface auto --mqtt
+passive-solar-mqtt --config /etc/passive-solar-mqtt/config.yaml --interface auto --mqtt
 ```
 
 ## Systemd Installation
@@ -379,7 +379,13 @@ alphaess-passive --config /etc/alphaess-passive/config.yaml --interface auto --m
 Build the Linux binary:
 
 ```bash
-GOOS=linux GOARCH=amd64 go build -o bin/alphaess-passive-linux-amd64 ./cmd/alphaess-passive
+GOOS=linux GOARCH=amd64 go build -o bin/passive-solar-mqtt-linux-amd64 ./cmd/passive-solar-mqtt
+```
+
+If you used a pre-release installation named `alphaess-passive`, stop and disable that old service before installing the renamed runtime. Otherwise both services may capture and publish to MQTT at the same time:
+
+```bash
+sudo systemctl disable --now alphaess-passive.service
 ```
 
 Copy the repository folder or at least the binary, `configs/`, and `scripts/` directory to the target Linux host. The easiest installation path is the interactive installer:
@@ -388,7 +394,7 @@ Copy the repository folder or at least the binary, `configs/`, and `scripts/` di
 sudo scripts/install-systemd.sh
 ```
 
-Run the installer again after copying a newer binary or updated config templates. In normal mode it reuses an existing `/etc/alphaess-passive/config.yaml` and MQTT password file, and only asks for values that are missing.
+Run the installer again after copying a newer binary or updated config templates. In normal mode it reuses an existing `/etc/passive-solar-mqtt/config.yaml` and MQTT password file, and only asks for values that are missing.
 
 To intentionally create a fresh configuration, use:
 
@@ -400,12 +406,12 @@ sudo scripts/install-systemd.sh --init
 
 The installer:
 
-- installs the binary to `/usr/local/bin/alphaess-passive`
-- creates or updates `/etc/alphaess-passive/config.yaml`
-- creates or updates `/etc/alphaess-passive/homeassistant-mapping.yaml`
+- installs the binary to `/usr/local/bin/passive-solar-mqtt`
+- creates or updates `/etc/passive-solar-mqtt/config.yaml`
+- creates or updates `/etc/passive-solar-mqtt/homeassistant-mapping.yaml`
 - asks for the MQTT password without echoing it only when no password file exists or `--init` is used
 - stores the MQTT password file with restricted permissions
-- creates or updates `/etc/systemd/system/alphaess-passive.service`
+- creates or updates `/etc/systemd/system/passive-solar-mqtt.service`
 - enables and starts the service
 - fails with recent journal output if the service is not actually active
 
@@ -414,34 +420,34 @@ The installer does not configure the Linux Layer-2 bridge. Build and verify the 
 For manual installation:
 
 ```bash
-sudo install -m 0755 bin/alphaess-passive-linux-amd64 /usr/local/bin/alphaess-passive
-sudo mkdir -p /etc/alphaess-passive
-sudo install -m 0644 configs/example.yaml /etc/alphaess-passive/config.yaml
-sudo install -m 0644 configs/homeassistant-mapping.yaml /etc/alphaess-passive/homeassistant-mapping.yaml
-sudo editor /etc/alphaess-passive/config.yaml
+sudo install -m 0755 bin/passive-solar-mqtt-linux-amd64 /usr/local/bin/passive-solar-mqtt
+sudo mkdir -p /etc/passive-solar-mqtt
+sudo install -m 0644 configs/example.yaml /etc/passive-solar-mqtt/config.yaml
+sudo install -m 0644 configs/homeassistant-mapping.yaml /etc/passive-solar-mqtt/homeassistant-mapping.yaml
+sudo editor /etc/passive-solar-mqtt/config.yaml
 ```
 
-Set the mapping file in `/etc/alphaess-passive/config.yaml` if you want to manage Home Assistant entities outside the binary:
+Set the mapping file in `/etc/passive-solar-mqtt/config.yaml` if you want to manage Home Assistant entities outside the binary:
 
 ```yaml
 homeassistant:
-  mapping_file: /etc/alphaess-passive/homeassistant-mapping.yaml
+  mapping_file: /etc/passive-solar-mqtt/homeassistant-mapping.yaml
 ```
 
-For a systemd service, copy `configs/alphaess-passive.service.example` to `/etc/systemd/system/alphaess-passive.service` and adjust `User=`/`Group=` if needed. The unit grants only `CAP_NET_RAW` to the service so the passive Linux packet socket can be opened without running the whole process as root.
+For a systemd service, copy `configs/passive-solar-mqtt.service.example` to `/etc/systemd/system/passive-solar-mqtt.service` and adjust `User=`/`Group=` if needed. The unit grants only `CAP_NET_RAW` to the service so the passive Linux packet socket can be opened without running the whole process as root.
 
 ```bash
-sudo install -m 0644 configs/alphaess-passive.service.example /etc/systemd/system/alphaess-passive.service
+sudo install -m 0644 configs/passive-solar-mqtt.service.example /etc/systemd/system/passive-solar-mqtt.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now alphaess-passive.service
-sudo systemctl is-active --quiet alphaess-passive.service
-sudo journalctl -u alphaess-passive.service -f
+sudo systemctl enable --now passive-solar-mqtt.service
+sudo systemctl is-active --quiet passive-solar-mqtt.service
+sudo journalctl -u passive-solar-mqtt.service -f
 ```
 
 Check the systemd hardening score:
 
 ```bash
-systemd-analyze security alphaess-passive.service
+systemd-analyze security passive-solar-mqtt.service
 ```
 
 The service logs to journald. A classic logrotate file is not needed unless you redirect logs to files. Limit journal growth on small hosts with `/etc/systemd/journald.conf` or a drop-in:
@@ -461,25 +467,35 @@ sudo systemctl restart systemd-journald.service
 For a temporary more talkative service, create an override:
 
 ```bash
-sudo systemctl edit alphaess-passive.service
+sudo systemctl edit passive-solar-mqtt.service
 ```
 
 ```ini
 [Service]
 ExecStart=
-ExecStart=/usr/local/bin/alphaess-passive --config /etc/alphaess-passive/config.yaml --mqtt --verbose
+ExecStart=/usr/local/bin/passive-solar-mqtt --config /etc/passive-solar-mqtt/config.yaml --mqtt --verbose
 ```
 
 Reload and restart:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl restart alphaess-passive.service
+sudo systemctl restart passive-solar-mqtt.service
 ```
 
 Remove the override again when verbose packet logging is no longer needed:
 
 ```bash
-sudo systemctl revert alphaess-passive.service
-sudo systemctl restart alphaess-passive.service
+sudo systemctl revert passive-solar-mqtt.service
+sudo systemctl restart passive-solar-mqtt.service
 ```
+
+## Uninstall
+
+To remove the installed service and binary:
+
+```bash
+sudo scripts/uninstall.sh
+```
+
+The uninstaller asks whether `/etc/passive-solar-mqtt` should be kept. Keep it if you plan to reinstall later with the same MQTT credentials and Home Assistant mapping. Remove it if you want to delete local configuration and secrets as well.

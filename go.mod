@@ -1,4 +1,4 @@
-module github.com/Heistergand/AlphaESS-to-MQTT_T10-HV
+module github.com/Heistergand/passive-solar-mqtt-bridge
 
 go 1.25.0
 

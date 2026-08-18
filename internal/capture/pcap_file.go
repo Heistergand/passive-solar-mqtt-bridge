@@ -9,9 +9,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/alphaess"
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/homeassistant"
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/mqtt"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/alphaess"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/homeassistant"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/mqtt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcapgo"

@@ -15,10 +15,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/capture"
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/config"
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/homeassistant"
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/mqtt"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/capture"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/config"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/homeassistant"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/mqtt"
 )
 
 func main() {
@@ -71,7 +71,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	fmt.Println("alphaess-passive starting")
+	fmt.Println("passive-solar-mqtt starting")
 	fmt.Printf("config: %s\n", configPath)
 	if mappingPath != "" {
 		fmt.Printf("home assistant mapping: %s\n", mappingPath)
@@ -106,7 +106,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("alphaess-passive stopped")
+	fmt.Println("passive-solar-mqtt stopped")
 }
 
 type cliOptions struct {
@@ -121,7 +121,7 @@ type cliOptions struct {
 }
 
 func parseFlags(args []string) (cliOptions, error) {
-	flags := flag.NewFlagSet("alphaess-passive", flag.ContinueOnError)
+	flags := flag.NewFlagSet("passive-solar-mqtt", flag.ContinueOnError)
 	flags.SetOutput(os.Stderr)
 
 	var opts cliOptions
@@ -195,7 +195,7 @@ func run(ctx context.Context, cfg config.Config, sensors []homeassistant.Sensor,
 	if cfg.MQTT.Enabled {
 		clientID := cfg.HomeAssistant.DeviceID
 		if clientID == "" {
-			clientID = "alphaess-passive"
+			clientID = "passive-solar-mqtt"
 		}
 		client = mqtt.NewClient(mqtt.Options{
 			Broker:       cfg.MQTT.Broker,

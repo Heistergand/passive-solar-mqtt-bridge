@@ -19,7 +19,7 @@ AlphaESS loses cloud connectivity
 ## Packages
 
 ```text
-cmd/alphaess-passive/   executable entry point
+cmd/passive-solar-mqtt/   executable entry point
 internal/config/        configuration loading and defaults
 internal/capture/       passive packet capture
 internal/reassembly/    TCP stream reconstruction

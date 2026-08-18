@@ -111,14 +111,14 @@ func TestNormalizeExpandsEnvironmentVariablesInPathFields(t *testing.T) {
 		},
 		MQTT: MQTTConfig{
 			Broker:       "tcp://127.0.0.1:1883",
-			PasswordFile: "${HOME}/.config/alphaess-passive/mqtt-password",
+			PasswordFile: "${HOME}/.config/passive-solar-mqtt/mqtt-password",
 			TopicBase:    "alphaess",
 		},
 		HomeAssistant: HomeAssistantConfig{
 			DiscoveryPrefix: "homeassistant",
 			DeviceID:        "alphaess_t10_hv",
 			DeviceName:      "AlphaESS SMILE-T10-HV",
-			MappingFile:     "${HOME}/.config/alphaess-passive/homeassistant-mapping.yaml",
+			MappingFile:     "${HOME}/.config/passive-solar-mqtt/homeassistant-mapping.yaml",
 		},
 	}
 
@@ -128,10 +128,10 @@ func TestNormalizeExpandsEnvironmentVariablesInPathFields(t *testing.T) {
 	if filepath.Clean(cfg.Input.File) != filepath.Join(home, "pcaps", "sample.pcapng") {
 		t.Fatalf("input file = %q", cfg.Input.File)
 	}
-	if filepath.Clean(cfg.MQTT.PasswordFile) != filepath.Join(home, ".config", "alphaess-passive", "mqtt-password") {
+	if filepath.Clean(cfg.MQTT.PasswordFile) != filepath.Join(home, ".config", "passive-solar-mqtt", "mqtt-password") {
 		t.Fatalf("password file = %q", cfg.MQTT.PasswordFile)
 	}
-	if filepath.Clean(cfg.HomeAssistant.MappingFile) != filepath.Join(home, ".config", "alphaess-passive", "homeassistant-mapping.yaml") {
+	if filepath.Clean(cfg.HomeAssistant.MappingFile) != filepath.Join(home, ".config", "passive-solar-mqtt", "homeassistant-mapping.yaml") {
 		t.Fatalf("mapping file = %q", cfg.HomeAssistant.MappingFile)
 	}
 }
@@ -140,11 +140,11 @@ func TestCompactHomePath(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 
-	path := filepath.Join(home, ".config", "alphaess-passive", "mqtt-password")
-	if got := compactHomePath(path); got != "${HOME}/.config/alphaess-passive/mqtt-password" {
+	path := filepath.Join(home, ".config", "passive-solar-mqtt", "mqtt-password")
+	if got := compactHomePath(path); got != "${HOME}/.config/passive-solar-mqtt/mqtt-password" {
 		t.Fatalf("compactHomePath() = %q", got)
 	}
-	if got := compactHomePath("/etc/alphaess-passive/config.yaml"); got != "/etc/alphaess-passive/config.yaml" {
+	if got := compactHomePath("/etc/passive-solar-mqtt/config.yaml"); got != "/etc/passive-solar-mqtt/config.yaml" {
 		t.Fatalf("compactHomePath(/etc) = %q", got)
 	}
 }
@@ -164,14 +164,14 @@ func TestSaveCompactsHomePathFields(t *testing.T) {
 		},
 		MQTT: MQTTConfig{
 			Broker:       "tcp://127.0.0.1:1883",
-			PasswordFile: filepath.Join(home, ".config", "alphaess-passive", "mqtt-password"),
+			PasswordFile: filepath.Join(home, ".config", "passive-solar-mqtt", "mqtt-password"),
 			TopicBase:    "alphaess",
 		},
 		HomeAssistant: HomeAssistantConfig{
 			DiscoveryPrefix: "homeassistant",
 			DeviceID:        "alphaess_t10_hv",
 			DeviceName:      "AlphaESS SMILE-T10-HV",
-			MappingFile:     filepath.Join(home, ".config", "alphaess-passive", "homeassistant-mapping.yaml"),
+			MappingFile:     filepath.Join(home, ".config", "passive-solar-mqtt", "homeassistant-mapping.yaml"),
 		},
 	}
 
@@ -186,8 +186,8 @@ func TestSaveCompactsHomePathFields(t *testing.T) {
 	text := string(data)
 	for _, want := range []string{
 		"file: ${HOME}/pcaps/sample.pcapng",
-		"password_file: ${HOME}/.config/alphaess-passive/mqtt-password",
-		"mapping_file: ${HOME}/.config/alphaess-passive/homeassistant-mapping.yaml",
+		"password_file: ${HOME}/.config/passive-solar-mqtt/mqtt-password",
+		"mapping_file: ${HOME}/.config/passive-solar-mqtt/homeassistant-mapping.yaml",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("saved config does not contain %q:\n%s", want, text)

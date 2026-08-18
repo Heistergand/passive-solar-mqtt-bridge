@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Heistergand/AlphaESS-to-MQTT_T10-HV/internal/config"
+	"github.com/Heistergand/passive-solar-mqtt-bridge/internal/config"
 )
 
 func TestParseFlagsConfig(t *testing.T) {

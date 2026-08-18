@@ -23,5 +23,5 @@ $env:GOCACHE = (Resolve-Path '.').Path + '\.gocache'
 $env:GOMODCACHE = (Resolve-Path '.').Path + '\.gomodcache'
 $env:GOOS = 'linux'
 $env:GOARCH = 'amd64'
-go build -o bin\alphaess-passive-linux-amd64 ./cmd/alphaess-passive
+go build -o bin\passive-solar-mqtt-linux-amd64 ./cmd/passive-solar-mqtt
 ```
