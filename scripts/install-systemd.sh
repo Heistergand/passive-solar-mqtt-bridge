@@ -89,14 +89,34 @@ ask_password() {
   local first second
   while true; do
     read -r -s -p "MQTT password: " first
-    echo
+    echo >&2
     read -r -s -p "Repeat MQTT password: " second
-    echo
+    echo >&2
     if [[ -n "${first}" && "${first}" == "${second}" ]]; then
       printf '%s' "${first}"
       return
     fi
     echo "Passwords did not match or were empty. Please try again."
+  done
+}
+
+ask_yes_no() {
+  local prompt="$1"
+  local value
+
+  while true; do
+    read -r -p "${prompt} [yes/no]: " value
+    case "$(trim_value "${value}")" in
+      yes|y|ja|j)
+        return 0
+        ;;
+      no|n|nein)
+        return 1
+        ;;
+      *)
+        echo "Please answer yes or no."
+        ;;
+    esac
   done
 }
 
@@ -189,6 +209,42 @@ backup_if_exists() {
   if [[ -e "${path}" ]]; then
     cp -a "${path}" "${path}.bak.$(date +%Y%m%d_%H%M%S)"
   fi
+}
+
+password_file_needs_attention() {
+  local path="$1"
+
+  [[ -s "${path}" ]] || return 0
+
+  awk '
+    /^[[:space:]]*$/ {
+      if (nonempty == 0) {
+        bad = 1
+      }
+      next
+    }
+    {
+      nonempty++
+      if (nonempty > 1 || $0 ~ /^[[:space:]]/ || $0 ~ /[[:space:]]$/) {
+        bad = 1
+      }
+    }
+    END {
+      exit (bad || nonempty != 1) ? 0 : 1
+    }
+  ' "${path}"
+}
+
+write_password_file() {
+  local path="$1"
+  local service_group="$2"
+  local password="$3"
+
+  mkdir -p "$(dirname -- "${path}")"
+  backup_if_exists "${path}"
+  printf '%s\n' "${password}" >"${path}"
+  chown root:"${service_group}" "${path}"
+  chmod 0640 "${path}"
 }
 
 write_config() {
@@ -288,6 +344,72 @@ WantedBy=multi-user.target
 EOF
 }
 
+offer_password_reentry() {
+  local password_file="$1"
+  local service_group="$2"
+  local reason="$3"
+  local mqtt_password
+
+  echo
+  echo "${reason}"
+  if ! ask_yes_no "Re-enter the MQTT password now?"; then
+    echo "Keeping existing MQTT password file unchanged."
+    return 1
+  fi
+
+  mqtt_password="$(ask_password)"
+  write_password_file "${password_file}" "${service_group}" "${mqtt_password}"
+  return 0
+}
+
+restart_service() {
+  systemctl daemon-reload
+  systemctl enable "${APP_NAME}.service" >/dev/null
+  systemctl reset-failed "${APP_NAME}.service" >/dev/null 2>&1 || true
+  systemctl restart "${APP_NAME}.service"
+}
+
+check_service_or_offer_password_reentry() {
+  local password_file="$1"
+  local service_group="$2"
+
+  sleep 2
+  if systemctl is-active --quiet "${APP_NAME}.service"; then
+    return 0
+  fi
+
+  echo
+  echo "Service did not become active. Recent logs:"
+  journalctl -u "${APP_NAME}.service" -n 80 --no-pager || true
+
+  if offer_password_reentry "${password_file}" "${service_group}" "The service did not start. If MQTT authentication failed, the stored password may be wrong."; then
+    restart_service
+    sleep 2
+    systemctl is-active --quiet "${APP_NAME}.service"
+    return
+  fi
+
+  return 1
+}
+
+check_password_file_format_or_offer_reentry() {
+  local password_file="$1"
+  local service_group="$2"
+
+  if ! password_file_needs_attention "${password_file}"; then
+    return 0
+  fi
+
+  if offer_password_reentry "${password_file}" "${service_group}" "The MQTT password file contains leading/trailing whitespace, blank lines, or more than one non-empty line."; then
+    restart_service
+    sleep 2
+    systemctl is-active --quiet "${APP_NAME}.service"
+    return
+  fi
+
+  return 0
+}
+
 main() {
   parse_args "$@"
   need_root
@@ -384,7 +506,7 @@ main() {
   fi
 
   if [[ "${INIT}" == "true" || ! -s "${password_file}" ]]; then
-    printf '%s\n' "${mqtt_password}" >"${password_file}"
+    write_password_file "${password_file}" "${service_group}" "${mqtt_password}"
   fi
   chown root:"${service_group}" "${password_file}"
   chmod 0640 "${password_file}"
@@ -392,18 +514,12 @@ main() {
   write_config "${iface}" "${source_ip}" "${cloud_ip}" "${cloud_port}" "${mqtt_broker}" "${mqtt_username}" "${password_file}" "${topic_base}" "${ha_prefix}" "${device_id}" "${device_name}" "${mapping_file}"
   write_service "${service_user}" "${service_group}"
 
-  systemctl daemon-reload
-  systemctl enable "${APP_NAME}.service" >/dev/null
-  systemctl reset-failed "${APP_NAME}.service" >/dev/null 2>&1 || true
-  systemctl restart "${APP_NAME}.service"
+  restart_service
 
-  sleep 2
-  if ! systemctl is-active --quiet "${APP_NAME}.service"; then
-    echo
-    echo "Service did not become active. Recent logs:"
-    journalctl -u "${APP_NAME}.service" -n 80 --no-pager || true
+  if ! check_service_or_offer_password_reentry "${password_file}" "${service_group}"; then
     exit 1
   fi
+  check_password_file_format_or_offer_reentry "${password_file}" "${service_group}"
 
   echo
   echo "Installed and running."
