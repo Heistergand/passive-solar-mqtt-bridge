@@ -205,6 +205,7 @@ func run(ctx context.Context, cfg config.Config, sensors []homeassistant.Sensor,
 			WillTopic:    cfg.MQTT.TopicBase + "/status",
 			WillPayload:  []byte("offline"),
 			WillRetained: true,
+			OnlineTopic:  cfg.MQTT.TopicBase + "/status",
 		})
 		if err := client.Connect(ctx); err != nil {
 			return err

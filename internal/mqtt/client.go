@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -21,16 +22,22 @@ type Options struct {
 	WillTopic    string
 	WillPayload  []byte
 	WillRetained bool
+	OnlineTopic  string
 }
 
 type Client struct {
+	mu   sync.Mutex
 	opts Options
 	conn net.Conn
+	stop chan struct{}
 }
 
 func NewClient(opts Options) *Client {
-	if opts.KeepAlive == 0 {
+	if opts.KeepAlive <= 0 {
 		opts.KeepAlive = 30 * time.Second
+	}
+	if opts.KeepAlive < time.Second {
+		opts.KeepAlive = time.Second
 	}
 	return &Client{opts: opts}
 }
@@ -39,6 +46,12 @@ func (c *Client) Connect(ctx context.Context) error {
 	if c == nil {
 		return errors.New("mqtt client is nil")
 	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.connectLocked(ctx)
+}
+
+func (c *Client) connectLocked(ctx context.Context) error {
 	if c.conn != nil {
 		return nil
 	}
@@ -48,20 +61,21 @@ func (c *Client) Connect(ctx context.Context) error {
 		return err
 	}
 
-	var dialer net.Dialer
+	var dialer = net.Dialer{Timeout: 5 * time.Second}
 	conn, err := dialer.DialContext(ctx, network, address)
 	if err != nil {
 		return err
 	}
 	c.conn = conn
+	conn.SetDeadline(time.Now().Add(5 * time.Second))
 
 	password, err := readPassword(c.opts.PasswordFile)
 	if err != nil {
-		c.Close()
+		c.closeConnectionOnly()
 		return err
 	}
 	if password != "" && c.opts.Username == "" {
-		c.Close()
+		c.closeConnectionOnly()
 		return errors.New("mqtt username is required when password_file is configured")
 	}
 
@@ -71,20 +85,31 @@ func (c *Client) Connect(ctx context.Context) error {
 		Retained: c.opts.WillRetained,
 	})
 	if err := writeFull(c.conn, packet); err != nil {
-		c.Close()
+		c.closeConnectionOnly()
 		return err
 	}
 
 	response := make([]byte, 4)
 	if _, err := io.ReadFull(c.conn, response); err != nil {
-		c.Close()
+		c.closeConnectionOnly()
 		return err
 	}
 	if response[0] != 0x20 || response[1] != 0x02 || response[2] != 0x00 || response[3] != 0x00 {
-		c.Close()
+		c.closeConnectionOnly()
 		return fmt.Errorf("mqtt connect rejected: % x", response)
 	}
 
+	conn.SetDeadline(time.Time{})
+	if c.opts.OnlineTopic != "" {
+		if err := c.writePacket(ctx, publishPacket(c.opts.OnlineTopic, []byte("online"), true)); err != nil {
+			c.closeConnectionOnly()
+			return err
+		}
+	}
+	if c.opts.KeepAlive > 0 {
+		c.stop = make(chan struct{})
+		go c.keepAlive(conn, c.stop)
+	}
 	return nil
 }
 
@@ -92,8 +117,10 @@ func (c *Client) PublishJSON(ctx context.Context, topic string, payload []byte, 
 	if c == nil {
 		return errors.New("mqtt client is nil")
 	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.conn == nil {
-		if err := c.Connect(ctx); err != nil {
+		if err := c.connectLocked(ctx); err != nil {
 			return err
 		}
 	}
@@ -104,23 +131,55 @@ func (c *Client) PublishJSON(ctx context.Context, topic string, payload []byte, 
 	}
 
 	c.closeConnectionOnly()
-	if err := c.Connect(ctx); err != nil {
+	if err := c.connectLocked(ctx); err != nil {
 		return err
 	}
 	return c.writePacket(ctx, packet)
 }
 
 func (c *Client) writePacket(ctx context.Context, packet []byte) error {
-	done := make(chan error, 1)
-	go func() {
-		done <- writeFull(c.conn, packet)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err := <-done:
+	if err := ctx.Err(); err != nil {
 		return err
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	if d, ok := ctx.Deadline(); ok && d.Before(deadline) {
+		deadline = d
+	}
+	c.conn.SetWriteDeadline(deadline)
+	defer c.conn.SetWriteDeadline(time.Time{})
+	return writeFull(c.conn, packet)
+}
+
+// Serialize PINGREQ/PINGRESP with publishes; this QoS 0 client expects no
+// other server packets after CONNACK. A failed ping invalidates the socket,
+// so the next publication reconnects and restores retained availability.
+func (c *Client) keepAlive(conn net.Conn, stop <-chan struct{}) {
+	ticker := time.NewTicker(c.opts.KeepAlive / 2)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-ticker.C:
+			c.mu.Lock()
+			if c.conn != conn {
+				c.mu.Unlock()
+				return
+			}
+			conn.SetDeadline(time.Now().Add(min(c.opts.KeepAlive/2, 5*time.Second)))
+			err := writeFull(conn, []byte{0xc0, 0x00})
+			var response [2]byte
+			if err == nil {
+				_, err = io.ReadFull(conn, response[:])
+			}
+			conn.SetDeadline(time.Time{})
+			if err != nil || response != [2]byte{0xd0, 0x00} {
+				c.closeConnectionOnly()
+				c.mu.Unlock()
+				return
+			}
+			c.mu.Unlock()
+		}
 	}
 }
 
@@ -128,17 +187,22 @@ func (c *Client) Close() error {
 	if c == nil {
 		return nil
 	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.conn == nil {
 		return nil
 	}
 
-	_ = writeFull(c.conn, []byte{0xe0, 0x00})
-	err := c.conn.Close()
-	c.conn = nil
-	return err
+	_ = c.writePacket(context.Background(), []byte{0xe0, 0x00})
+	c.closeConnectionOnly()
+	return nil
 }
 
 func (c *Client) closeConnectionOnly() {
+	if c.stop != nil {
+		close(c.stop)
+		c.stop = nil
+	}
 	if c.conn == nil {
 		return
 	}
