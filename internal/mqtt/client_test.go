@@ -25,6 +25,126 @@ func TestBrokerAddressAddsDefaultPort(t *testing.T) {
 	}
 }
 
+// Read complete MQTT packets rather than assuming one TCP read per packet.
+func readTestPacket(conn net.Conn) ([]byte, error) {
+	var header [1]byte
+	if _, err := io.ReadFull(conn, header[:]); err != nil {
+		return nil, err
+	}
+	packet := []byte{header[0]}
+	length, multiplier := 0, 1
+	for i := 0; i < 4; i++ {
+		var b [1]byte
+		if _, err := io.ReadFull(conn, b[:]); err != nil {
+			return nil, err
+		}
+		packet = append(packet, b[0])
+		length += int(b[0]&127) * multiplier
+		if b[0]&128 == 0 {
+			body := make([]byte, length)
+			_, err := io.ReadFull(conn, body)
+			return append(packet, body...), err
+		}
+		multiplier *= 128
+	}
+	return nil, errors.New("invalid remaining length")
+}
+
+func TestKeepAliveAndAvailabilityAfterReconnect(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	result := make(chan error, 1)
+	go func() {
+		result <- func() error {
+			for session := 0; session < 2; session++ {
+				conn, err := listener.Accept()
+				if err != nil {
+					return err
+				}
+				defer conn.Close()
+				conn.SetDeadline(time.Now().Add(5 * time.Second))
+				if _, err := readTestPacket(conn); err != nil {
+					return err
+				}
+				if _, err := conn.Write([]byte{0x20, 2, 0, 0}); err != nil {
+					return err
+				}
+				packet, err := readTestPacket(conn)
+				if err != nil {
+					return err
+				}
+				if !bytes.Equal(packet, publishPacket("alphaess/status", []byte("online"), true)) {
+					return errors.New("connection did not restore retained online first")
+				}
+				if session == 0 {
+					// A healthy idle connection receives pings and remains usable.
+					for i := 0; i < 2; i++ {
+						packet, err = readTestPacket(conn)
+						if err != nil {
+							return err
+						}
+						if !bytes.Equal(packet, []byte{0xc0, 0}) {
+							return errors.New("expected ping")
+						}
+						if _, err := conn.Write([]byte{0xd0, 0}); err != nil {
+							return err
+						}
+					}
+					// Then stop answering: the client must detect a missing PINGRESP.
+					if _, err := readTestPacket(conn); err != nil {
+						return err
+					}
+					var b [1]byte
+					if _, err := conn.Read(b[:]); err != io.EOF {
+						return errors.New("client did not close unresponsive connection")
+					}
+				} else {
+					packet, err = readTestPacket(conn)
+					if err != nil {
+						return err
+					}
+					if !bytes.Equal(packet, publishPacket("alphaess/raw/state", []byte(`{"SOC":42}`), true)) {
+						return errors.New("missing state after reconnect")
+					}
+				}
+			}
+			return nil
+		}()
+	}()
+	client := NewClient(Options{Broker: "tcp://" + listener.Addr().String(), ClientID: "test", KeepAlive: time.Second, OnlineTopic: "alphaess/status"})
+	defer client.Close()
+	if err := client.Connect(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		client.mu.Lock()
+		disconnected := client.conn == nil
+		client.mu.Unlock()
+		if disconnected {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("ping timeout not detected")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if err := client.PublishJSON(context.Background(), "alphaess/raw/state", []byte(`{"SOC":42}`), true); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-result:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("broker timed out")
+	}
+}
+
 func TestEncodeRemainingLength(t *testing.T) {
 	if got := encodeRemainingLength(321); !bytes.Equal(got, []byte{0xc1, 0x02}) {
 		t.Fatalf("encoded = % x", got)
